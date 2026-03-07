@@ -14,6 +14,7 @@ function saveToStorage(key: string, data: unknown) {
   localStorage.setItem(key, JSON.stringify(data));
 }
 
+function useFinanceData() {
   const [revenues, setRevenues] = useState<RevenueEntry[]>(() =>
     loadFromStorage('finance_revenues', [])
   );
@@ -159,3 +160,5 @@ function saveToStorage(key: string, data: unknown) {
     clients, addClient, removeClient,
   };
 }
+
+export default useFinanceData;

@@ -5,15 +5,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { RevenueEntry, Client } from '@/types/finance';
 import { Trash2, Plus } from 'lucide-react';
 
-  revenues: RevenueEntry[];
-  revenueByClient: Record<string, number>;
-  onAdd: (entry: Omit<RevenueEntry, 'id' | 'month' | 'year' | 'amount'>) => void;
-  onDelete: (id: string) => void;
-  onEdit: (id: string, updated: Partial<Omit<RevenueEntry, 'id' | 'month' | 'year' | 'amount'>>) => void;
-  clients: Client[];
-  onAddClient: (client: Omit<Client, 'id'>) => void;
-  onEditClient?: (id: string, updated: Partial<Omit<Client, 'id'>>) => void;
-  onRemoveClient: (id: string) => void;
+interface RevenueTabProps {
+    revenues: RevenueEntry[];
+    revenueByClient: Record<string, number>;
+    onAdd: (entry: Omit<RevenueEntry, 'id' | 'month' | 'year' | 'amount'>) => void;
+    onDelete: (id: string) => void;
+    onEdit: (id: string, updated: Partial<Omit<RevenueEntry, 'id' | 'month' | 'year' | 'amount'>>) => void;
+    clients: Client[];
+    onAddClient: (client: Omit<Client, 'id'>) => void;
+    onEditClient?: (id: string, updated: Partial<Omit<Client, 'id'>>) => void;
+    onRemoveClient: (id: string) => void;
 }
 
 export function RevenueTab({ revenues, revenueByClient, onAdd, onDelete, onEdit, clients, onAddClient, onEditClient, onRemoveClient }: RevenueTabProps) {

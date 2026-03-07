@@ -5,7 +5,7 @@ import { RevenueTab } from '@/components/RevenueTab';
 import { ExpenseTab } from '@/components/ExpenseTab';
 import { Dashboard } from '@/components/Dashboard';
 import { ClientTab } from '@/components/ClientTab';
-import { useFinanceData } from '@/hooks/useFinanceData';
+import useFinanceData from '@/hooks/useFinanceData';
 import { MONTH_NAMES } from '@/types/finance';
 import { TrendingUp, TrendingDown, LayoutDashboard } from 'lucide-react';
 

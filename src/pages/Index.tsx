@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MonthYearFilter } from '@/components/MonthYearFilter';
 import { RevenueTab } from '@/components/RevenueTab';
@@ -11,6 +11,51 @@ import { TrendingUp, TrendingDown, LayoutDashboard } from 'lucide-react';
 
 const Index = () => {
   const data = useFinanceData();
+
+  // Export all data as JSON
+  const handleExport = () => {
+    const exportData = {
+      clients: data.clients,
+      revenues: data.revenues,
+      expenses: data.expenses,
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mes-finances-export-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Import data from JSON
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const imported = JSON.parse(event.target?.result as string);
+        if (imported.clients && imported.revenues && imported.expenses) {
+          localStorage.setItem('finance_clients', JSON.stringify(imported.clients));
+          localStorage.setItem('finance_revenues', JSON.stringify(imported.revenues));
+          localStorage.setItem('finance_expenses', JSON.stringify(imported.expenses));
+          window.location.reload();
+        } else {
+          alert('Fichier invalide.');
+        }
+      } catch {
+        alert('Erreur lors de l\'import.');
+      }
+    };
+    reader.readAsText(file);
+  };
 
   // Apply recurring expenses when month/year changes
   useEffect(() => {
@@ -28,12 +73,35 @@ const Index = () => {
               {MONTH_NAMES[data.selectedMonth]} {data.selectedYear}
             </p>
           </div>
-          <MonthYearFilter
-            selectedMonth={data.selectedMonth}
-            selectedYear={data.selectedYear}
-            onMonthChange={data.setSelectedMonth}
-            onYearChange={data.setSelectedYear}
-          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExport}
+              className="px-3 py-1 rounded bg-primary text-primary-foreground text-xs hover:bg-primary/80 border border-primary"
+              title="Exporter les données"
+            >
+              Exporter
+            </button>
+            <button
+              onClick={handleImportClick}
+              className="px-3 py-1 rounded bg-secondary text-secondary-foreground text-xs hover:bg-secondary/80 border border-secondary"
+              title="Importer des données"
+            >
+              Importer
+            </button>
+            <input
+              type="file"
+              accept="application/json"
+              ref={fileInputRef}
+              onChange={handleImport}
+              style={{ display: 'none' }}
+            />
+            <MonthYearFilter
+              selectedMonth={data.selectedMonth}
+              selectedYear={data.selectedYear}
+              onMonthChange={data.setSelectedMonth}
+              onYearChange={data.setSelectedYear}
+            />
+          </div>
         </div>
       </header>
 

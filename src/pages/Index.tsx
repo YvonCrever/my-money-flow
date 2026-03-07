@@ -4,6 +4,7 @@ import { MonthYearFilter } from '@/components/MonthYearFilter';
 import { RevenueTab } from '@/components/RevenueTab';
 import { ExpenseTab } from '@/components/ExpenseTab';
 import { Dashboard } from '@/components/Dashboard';
+import { ClientTab } from '@/components/ClientTab';
 import { useFinanceData } from '@/hooks/useFinanceData';
 import { MONTH_NAMES } from '@/types/finance';
 import { TrendingUp, TrendingDown, LayoutDashboard } from 'lucide-react';
@@ -39,7 +40,7 @@ const Index = () => {
       {/* Main content */}
       <main className="container max-w-6xl mx-auto px-4 py-6">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsList className="grid w-full max-w-xl grid-cols-4">
             <TabsTrigger value="dashboard" className="gap-1.5">
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
@@ -52,7 +53,14 @@ const Index = () => {
               <TrendingDown className="h-4 w-4" />
               Dépenses
             </TabsTrigger>
+            <TabsTrigger value="clients" className="gap-1.5">
+              <span className="h-4 w-4 inline-block">👤</span>
+              Clients
+            </TabsTrigger>
           </TabsList>
+          <TabsContent value="clients">
+            <ClientTab clients={data.clients} revenues={data.revenues} />
+          </TabsContent>
 
           <TabsContent value="dashboard">
             <Dashboard
@@ -70,6 +78,11 @@ const Index = () => {
               revenueByClient={data.revenueByClient}
               onAdd={data.addRevenue}
               onDelete={data.deleteRevenue}
+              onEdit={data.editRevenue}
+              clients={data.clients}
+              onAddClient={data.addClient}
+              onEditClient={data.editClient}
+              onRemoveClient={data.removeClient}
             />
           </TabsContent>
 

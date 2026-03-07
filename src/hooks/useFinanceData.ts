@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { RevenueEntry, ExpenseEntry } from '@/types/finance';
+import { RevenueEntry, ExpenseEntry, Client } from '@/types/finance';
 
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
@@ -14,18 +14,33 @@ function saveToStorage(key: string, data: unknown) {
   localStorage.setItem(key, JSON.stringify(data));
 }
 
-export function useFinanceData() {
   const [revenues, setRevenues] = useState<RevenueEntry[]>(() =>
     loadFromStorage('finance_revenues', [])
   );
   const [expenses, setExpenses] = useState<ExpenseEntry[]>(() =>
     loadFromStorage('finance_expenses', [])
   );
+  const [clients, setClients] = useState<Client[]>(() => loadFromStorage('finance_clients', []));
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => { saveToStorage('finance_revenues', revenues); }, [revenues]);
   useEffect(() => { saveToStorage('finance_expenses', expenses); }, [expenses]);
+  useEffect(() => { saveToStorage('finance_clients', clients); }, [clients]);
+  // Clients management
+  const addClient = useCallback((client: Omit<Client, 'id'>) => {
+    setClients(prev => {
+      if (prev.some(c => c.name === client.name && c.siren === client.siren)) return prev;
+      return [...prev, { ...client, id: crypto.randomUUID() }];
+    });
+  }, []);
+  const editClient = useCallback((id: string, updated: Partial<Omit<Client, 'id'>>) => {
+    setClients(prev => prev.map(c => c.id === id ? { ...c, ...updated } : c));
+  }, []);
+  const removeClient = useCallback((id: string) => {
+    setClients(prev => prev.filter(c => c.id !== id));
+  }, []);
+
 
   const addRevenue = useCallback((entry: Omit<RevenueEntry, 'id' | 'month' | 'year' | 'amount'>) => {
     const d = new Date(entry.date);
@@ -37,6 +52,20 @@ export function useFinanceData() {
       year: d.getFullYear(),
     };
     setRevenues(prev => [newEntry, ...prev]);
+  }, []);
+
+  const editRevenue = useCallback((id: string, updated: Partial<Omit<RevenueEntry, 'id' | 'month' | 'year' | 'amount'>>) => {
+    setRevenues(prev => prev.map(r =>
+      r.id === id
+        ? {
+            ...r,
+            ...updated,
+            amount: updated.hourlyRate !== undefined && updated.hours !== undefined
+              ? updated.hourlyRate * updated.hours
+              : (updated.hourlyRate !== undefined ? updated.hourlyRate * r.hours : (updated.hours !== undefined ? r.hourlyRate * updated.hours : r.amount)),
+          }
+        : r
+    ));
   }, []);
 
   const deleteRevenue = useCallback((id: string) => {
@@ -121,11 +150,12 @@ export function useFinanceData() {
     filteredRevenues, filteredExpenses,
     selectedMonth, selectedYear,
     setSelectedMonth, setSelectedYear,
-    addRevenue, deleteRevenue,
+    addRevenue, deleteRevenue, editRevenue,
     addExpense, deleteExpense,
     applyRecurring,
     totalRevenue, totalExpenses, profit,
     revenueByClient, expensesByCategory,
     monthlySummary,
+    clients, addClient, removeClient,
   };
 }

@@ -1,3 +1,9 @@
+export interface Client {
+  id: string;
+  name: string;
+  address: string;
+  siren: string;
+}
 export interface RevenueEntry {
   id: string;
   date: string; // YYYY-MM-DD

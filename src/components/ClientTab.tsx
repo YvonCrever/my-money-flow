@@ -10,6 +10,7 @@ interface ClientTabProps {
 
 export function ClientTab({ clients, revenues }: ClientTabProps) {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [invoiceClient, setInvoiceClient] = useState<Client | null>(null);
 
   const clientStats = (client: Client) => {
     // Regrouper les revenus par mois pour ce client
@@ -44,9 +45,15 @@ export function ClientTab({ clients, revenues }: ClientTabProps) {
                   <TableCell>{client.address}</TableCell>
                   <TableCell>{client.siren}</TableCell>
                   <TableCell>{total.toFixed(2)} €</TableCell>
-                  <TableCell>
+                  <TableCell className="flex flex-col gap-1">
                     <button className="underline text-primary" onClick={() => setSelectedClientId(client.id)}>
                       Voir stats
+                    </button>
+                    <button
+                      className="underline text-secondary mt-1"
+                      onClick={() => setInvoiceClient(client)}
+                    >
+                      Sortir la facture
                     </button>
                   </TableCell>
                 </TableRow>
@@ -89,6 +96,14 @@ export function ClientTab({ clients, revenues }: ClientTabProps) {
           </Card>
         );
       })()}
+
+      {/* Aperçu facture */}
+      {invoiceClient && (
+        <InvoicePreview
+          client={invoiceClient}
+          revenues={revenues.filter(r => r.client === invoiceClient.name)}
+          onClose={() => setInvoiceClient(null)}
+        />
+      )}
     </div>
   );
-}

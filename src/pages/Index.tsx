@@ -1,169 +1,259 @@
-import { useEffect, useRef } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MonthYearFilter } from '@/components/MonthYearFilter';
-import { RevenueTab } from '@/components/RevenueTab';
-import { ExpenseTab } from '@/components/ExpenseTab';
-import { Dashboard } from '@/components/Dashboard';
-import { ClientTab } from '@/components/ClientTab';
+import { useEffect, useRef, useState, type RefObject } from 'react';
+import { AppOptionsMenu } from '@/components/AppOptionsMenu';
+import { AppChromeDrawer, AppChromeProvider, useAppChrome } from '@/components/AppChromeProvider';
+import { useAppMastheadMotion } from '@/components/AppMastheadMotionProvider';
 import useFinanceData from '@/hooks/useFinanceData';
-import { MONTH_NAMES } from '@/types/finance';
-import { TrendingUp, TrendingDown, LayoutDashboard } from 'lucide-react';
+import HomePage from '@/pages/app/HomePage';
+import CalendarPage from '@/pages/app/CalendarPage';
+import FinancePage from '@/pages/app/FinancePage';
+import LecturePage from '@/pages/app/LecturePage';
+import JournalPage from '@/pages/app/JournalPage';
 
-const Index = () => {
-  const data = useFinanceData();
+type AppPage = 'home' | 'calendar' | 'finance' | 'lecture' | 'journal';
+type FinancePageTab = 'dashboard' | 'revenus' | 'depenses' | 'clients' | 'donnees';
 
-  // Export all data as JSON
-  const handleExport = () => {
-    const exportData = {
-      clients: data.clients,
-      revenues: data.revenues,
-      expenses: data.expenses,
-    };
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `mes-finances-export-${new Date().toISOString().slice(0,10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+const APP_PAGES: { id: AppPage; label: string }[] = [
+  { id: 'home', label: 'Accueil' },
+  { id: 'calendar', label: 'Calendrier' },
+  { id: 'finance', label: 'Finances' },
+  { id: 'lecture', label: 'Lecture' },
+  { id: 'journal', label: 'Journal' },
+];
+
+function resolveInitialState() {
+  if (typeof window === 'undefined') {
+    return { initialPage: 'home' as AppPage, initialFinanceTab: 'dashboard' as FinancePageTab };
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const requestedPage = params.get('page');
+  const requestedFinanceTab = params.get('financeTab');
+  const availablePages = new Set<AppPage>(APP_PAGES.map((page) => page.id));
+  const availableFinanceTabs = new Set<FinancePageTab>(['dashboard', 'revenus', 'depenses', 'clients', 'donnees']);
+
+  return {
+    initialPage: requestedPage && availablePages.has(requestedPage as AppPage)
+      ? requestedPage as AppPage
+      : 'home',
+    initialFinanceTab: requestedFinanceTab && availableFinanceTabs.has(requestedFinanceTab as FinancePageTab)
+      ? requestedFinanceTab as FinancePageTab
+      : 'dashboard',
   };
+}
 
-  // Import data from JSON
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const imported = JSON.parse(event.target?.result as string);
-        if (imported.clients && imported.revenues && imported.expenses) {
-          localStorage.setItem('finance_clients', JSON.stringify(imported.clients));
-          localStorage.setItem('finance_revenues', JSON.stringify(imported.revenues));
-          localStorage.setItem('finance_expenses', JSON.stringify(imported.expenses));
-          window.location.reload();
-        } else {
-          alert('Fichier invalide.');
-        }
-      } catch {
-        alert('Erreur lors de l\'import.');
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  // Apply recurring expenses when month/year changes
-  useEffect(() => {
-    data.applyRecurring(data.selectedMonth, data.selectedYear);
-  }, [data.selectedMonth, data.selectedYear]);
+function IndexWorkspace({
+  activePage,
+  financeData,
+  financeTab,
+  mainClassName,
+  mastheadRef,
+  onOpenFinanceData,
+  onPageTabClick,
+  setFinanceTab,
+  pageAnimationOwnerId,
+  pageAnimationToken,
+}: {
+  activePage: AppPage;
+  financeData: ReturnType<typeof useFinanceData>;
+  financeTab: FinancePageTab;
+  mainClassName: string;
+  mastheadRef: RefObject<HTMLElement | null>;
+  onOpenFinanceData: () => void;
+  onPageTabClick: (page: AppPage) => void;
+  setFinanceTab: (tab: FinancePageTab) => void;
+  pageAnimationOwnerId: 'finance' | 'lecture' | 'journal' | null;
+  pageAnimationToken: number;
+}) {
+  const { activeMotionId } = useAppMastheadMotion();
+  const { drawerState } = useAppChrome();
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Mes Finances</h1>
-            <p className="text-sm text-muted-foreground">
-              {MONTH_NAMES[data.selectedMonth]} {data.selectedYear}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleExport}
-              className="px-3 py-1 rounded bg-primary text-primary-foreground text-xs hover:bg-primary/80 border border-primary"
-              title="Exporter les données"
-            >
-              Exporter
-            </button>
-            <button
-              onClick={handleImportClick}
-              className="px-3 py-1 rounded bg-secondary text-secondary-foreground text-xs hover:bg-secondary/80 border border-secondary"
-              title="Importer des données"
-            >
-              Importer
-            </button>
-            <input
-              type="file"
-              accept="application/json"
-              ref={fileInputRef}
-              onChange={handleImport}
-              style={{ display: 'none' }}
-            />
-            <MonthYearFilter
-              selectedMonth={data.selectedMonth}
-              selectedYear={data.selectedYear}
-              onMonthChange={data.setSelectedMonth}
-              onYearChange={data.setSelectedYear}
-            />
+    <>
+      <nav
+        ref={mastheadRef}
+        className="app-masthead"
+        data-drawer-open={drawerState.isOpen ? 'true' : 'false'}
+        data-app-masthead-motion={activeMotionId}
+      >
+        <div className="app-masthead-primary">
+          <div className="app-masthead-inner">
+            <div className="app-brand">
+              <span className="app-brand-mark">
+                <svg className="app-brand-glyph" viewBox="0 0 64 64" aria-hidden="true">
+                  <path className="app-brand-glyph-y" d="M18 18 L32 34 L46 18 M32 34 V48" />
+                  <path className="app-brand-glyph-base" d="M24 50 H40" />
+                  <circle className="app-brand-glyph-dot" cx="32" cy="13.5" r="1.8" />
+                </svg>
+              </span>
+              <span className="app-brand-name">Ycaro</span>
+            </div>
+
+            <div className="app-page-rail">
+              <div className="app-page-tabs">
+                {APP_PAGES.map((page) => {
+                  const isActive = activePage === page.id;
+                  return (
+                    <button
+                      key={page.id}
+                      type="button"
+                      className={`app-page-tab ${isActive ? 'is-active' : ''}`}
+                      onClick={() => onPageTabClick(page.id)}
+                    >
+                      <span className="app-page-tab-label">{page.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="app-masthead-actions">
+              <AppOptionsMenu onOpenFinanceData={onOpenFinanceData} />
+            </div>
           </div>
         </div>
-      </header>
 
-      {/* Main content */}
-      <main className="container max-w-6xl mx-auto px-4 py-6">
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full max-w-xl grid-cols-4">
-            <TabsTrigger value="dashboard" className="gap-1.5">
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="revenus" className="gap-1.5">
-              <TrendingUp className="h-4 w-4" />
-              Revenus
-            </TabsTrigger>
-            <TabsTrigger value="depenses" className="gap-1.5">
-              <TrendingDown className="h-4 w-4" />
-              Dépenses
-            </TabsTrigger>
-            <TabsTrigger value="clients" className="gap-1.5">
-              <span className="h-4 w-4 inline-block">👤</span>
-              Clients
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="clients">
-            <ClientTab clients={data.clients} revenues={data.revenues} />
-          </TabsContent>
+        <div className="app-masthead-secondary">
+          <AppChromeDrawer
+            pageAnimationOwnerId={pageAnimationOwnerId}
+            pageAnimationToken={pageAnimationToken}
+          />
+        </div>
+      </nav>
 
-          <TabsContent value="dashboard">
-            <Dashboard
-              monthlySummary={data.monthlySummary}
-              totalRevenue={data.totalRevenue}
-              totalExpenses={data.totalExpenses}
-              profit={data.profit}
-              selectedYear={data.selectedYear}
+      <div key={activePage} className="animate-page-shift-in pt-4">
+        <main className={mainClassName}>
+          {activePage === 'home' ? (
+            <HomePage
+              monthlySummary={financeData.monthlySummary}
+              selectedYear={financeData.selectedYear}
+              totalRevenue={financeData.totalRevenue}
             />
-          </TabsContent>
+          ) : null}
 
-          <TabsContent value="revenus">
-            <RevenueTab
-              revenues={data.filteredRevenues}
-              revenueByClient={data.revenueByClient}
-              onAdd={data.addRevenue}
-              onDelete={data.deleteRevenue}
-              onEdit={data.editRevenue}
-              clients={data.clients}
-              onAddClient={data.addClient}
-              onEditClient={data.editClient}
-              onRemoveClient={data.removeClient}
-            />
-          </TabsContent>
+          {activePage === 'calendar' ? (
+            <CalendarPage />
+          ) : null}
 
-          <TabsContent value="depenses">
-            <ExpenseTab
-              expenses={data.filteredExpenses}
-              expensesByCategory={data.expensesByCategory}
-              onAdd={data.addExpense}
-              onDelete={data.deleteExpense}
+          {activePage === 'finance' ? (
+            <FinancePage
+              data={financeData}
+              activeTab={financeTab}
+              onTabChange={setFinanceTab}
             />
-          </TabsContent>
-        </Tabs>
-      </main>
+          ) : null}
+
+          {activePage === 'lecture' ? (
+            <LecturePage />
+          ) : null}
+
+          {activePage === 'journal' ? (
+            <JournalPage />
+          ) : null}
+        </main>
+      </div>
+    </>
+  );
+}
+
+const Index = () => {
+  const [{ initialPage, initialFinanceTab }] = useState(resolveInitialState);
+  const [activePage, setActivePage] = useState<AppPage>(initialPage);
+  const [financeTab, setFinanceTab] = useState<FinancePageTab>(initialFinanceTab);
+  const [pageAnimationToken, setPageAnimationToken] = useState(0);
+  const financeData = useFinanceData();
+  const mastheadRef = useRef<HTMLElement | null>(null);
+  const previousPageRef = useRef<AppPage>(initialPage);
+  const isCalendarPage = activePage === 'calendar';
+  const mainClassName = isCalendarPage ? 'app-main app-main--calendar' : 'app-main app-main--standard';
+  const pageAnimationOwnerId = activePage === 'finance' || activePage === 'lecture' || activePage === 'journal'
+    ? activePage
+    : null;
+
+  const handlePageTabClick = (page: AppPage) => {
+    if (page === activePage) return;
+    setActivePage(page);
+  };
+
+  const handleFinanceTabChange = (tab: FinancePageTab) => {
+    if (tab === financeTab) return;
+    setFinanceTab(tab);
+    if (activePage === 'finance') {
+      setPageAnimationToken((current) => current + 1);
+    }
+  };
+
+  const handleOpenFinanceData = () => {
+    if (activePage === 'finance' && financeTab !== 'donnees') {
+      setPageAnimationToken((current) => current + 1);
+    }
+
+    setFinanceTab('donnees');
+    setActivePage('finance');
+  };
+
+  useEffect(() => {
+    const masthead = mastheadRef.current;
+    if (!masthead || typeof document === 'undefined') return;
+
+    const rootStyle = document.documentElement.style;
+
+    const updateMastheadOffset = () => {
+      const nextHeight = Math.ceil(masthead.getBoundingClientRect().height);
+      rootStyle.setProperty('--app-masthead-offset', `${nextHeight}px`);
+    };
+
+    updateMastheadOffset();
+
+    const resizeObserver = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => updateMastheadOffset())
+      : null;
+
+    resizeObserver?.observe(masthead);
+    window.addEventListener('resize', updateMastheadOffset);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', updateMastheadOffset);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (previousPageRef.current === activePage) return;
+    previousPageRef.current = activePage;
+
+    if (activePage === 'finance' || activePage === 'lecture' || activePage === 'journal') {
+      setPageAnimationToken((current) => current + 1);
+    }
+  }, [activePage]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', activePage);
+    params.set('financeTab', financeTab);
+
+    const nextSearch = params.toString();
+    const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}`;
+    window.history.replaceState({}, '', nextUrl);
+  }, [activePage, financeTab]);
+
+  return (
+    <div className="themed-app min-h-screen bg-background">
+      <AppChromeProvider>
+        <IndexWorkspace
+          activePage={activePage}
+          financeData={financeData}
+          financeTab={financeTab}
+          mainClassName={mainClassName}
+          mastheadRef={mastheadRef}
+          onOpenFinanceData={handleOpenFinanceData}
+          onPageTabClick={handlePageTabClick}
+          setFinanceTab={handleFinanceTabChange}
+          pageAnimationOwnerId={pageAnimationOwnerId}
+          pageAnimationToken={pageAnimationToken}
+        />
+      </AppChromeProvider>
     </div>
   );
 };

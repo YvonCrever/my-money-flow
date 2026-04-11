@@ -1,163 +1,192 @@
-import { useState, useCallback, useEffect } from 'react';
-import { RevenueEntry, ExpenseEntry, Client } from '@/types/finance';
+import { useCallback, useEffect, useState } from 'react';
+import { Client, ExpenseEntry, RevenueEntry } from '@/types/finance';
+import {
+  addExpenseRecord,
+  addFinanceClient,
+  addRevenueRecord,
+  deleteExpenseRecord,
+  deleteRevenueRecord,
+  ensureFinanceStoreReady,
+  editExpenseRecord,
+  editFinanceClient,
+  editRevenueRecord,
+  readFinanceClients,
+  readFinanceExpenses,
+  readFinanceRevenues,
+  removeFinanceClient,
+  subscribeFinanceStore,
+  writeFinanceExpenses,
+} from '@/lib/financeStore';
+import { getFeatureStorageLoadErrorMessage } from '@/lib/storageLoadErrors';
 
-function loadFromStorage<T>(key: string, fallback: T): T {
-  try {
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function saveToStorage(key: string, data: unknown) {
-  localStorage.setItem(key, JSON.stringify(data));
+function syncFinanceState(
+  setRevenues: (entries: RevenueEntry[]) => void,
+  setExpenses: (entries: ExpenseEntry[]) => void,
+  setClients: (entries: Client[]) => void,
+) {
+  setRevenues(readFinanceRevenues());
+  setExpenses(readFinanceExpenses());
+  setClients(readFinanceClients());
 }
 
 function useFinanceData() {
-  const [revenues, setRevenues] = useState<RevenueEntry[]>(() =>
-    loadFromStorage('finance_revenues', [])
-  );
-  const [expenses, setExpenses] = useState<ExpenseEntry[]>(() =>
-    loadFromStorage('finance_expenses', [])
-  );
-  const [clients, setClients] = useState<Client[]>(() => loadFromStorage('finance_clients', []));
+  const [revenues, setRevenues] = useState<RevenueEntry[]>(() => readFinanceRevenues());
+  const [expenses, setExpenses] = useState<ExpenseEntry[]>(() => readFinanceExpenses());
+  const [clients, setClients] = useState<Client[]>(() => readFinanceClients());
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  useEffect(() => { saveToStorage('finance_revenues', revenues); }, [revenues]);
-  useEffect(() => { saveToStorage('finance_expenses', expenses); }, [expenses]);
-  useEffect(() => { saveToStorage('finance_clients', clients); }, [clients]);
-  // Clients management
-  const addClient = useCallback((client: Omit<Client, 'id'>) => {
-    setClients(prev => {
-      if (prev.some(c => c.name === client.name && c.siren === client.siren)) return prev;
-      return [...prev, { ...client, id: crypto.randomUUID() }];
+  useEffect(() => {
+    void ensureFinanceStoreReady()
+      .then(() => {
+        syncFinanceState(setRevenues, setExpenses, setClients);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        setLoadError(getFeatureStorageLoadErrorMessage('Finances', error));
+      })
+      .finally(() => {
+        setIsLoaded(true);
+      });
+
+    return subscribeFinanceStore(() => {
+      syncFinanceState(setRevenues, setExpenses, setClients);
+      setLoadError(null);
     });
   }, []);
-  const editClient = useCallback((id: string, updated: Partial<Omit<Client, 'id'>>) => {
-    setClients(prev => prev.map(c => c.id === id ? { ...c, ...updated } : c));
-  }, []);
-  const removeClient = useCallback((id: string) => {
-    setClients(prev => prev.filter(c => c.id !== id));
+
+  const addClient = useCallback((client: Omit<Client, 'id'>) => {
+    addFinanceClient(client);
   }, []);
 
+  const editClient = useCallback((id: string, updated: Partial<Omit<Client, 'id'>>) => {
+    editFinanceClient(id, updated);
+  }, []);
+
+  const removeClient = useCallback((id: string) => {
+    removeFinanceClient(id);
+  }, []);
 
   const addRevenue = useCallback((entry: Omit<RevenueEntry, 'id' | 'month' | 'year' | 'amount'>) => {
-    const d = new Date(entry.date);
-    const newEntry: RevenueEntry = {
-      ...entry,
-      id: crypto.randomUUID(),
-      amount: entry.hourlyRate * entry.hours,
-      month: d.getMonth(),
-      year: d.getFullYear(),
-    };
-    setRevenues(prev => [newEntry, ...prev]);
+    addRevenueRecord(entry);
   }, []);
 
   const editRevenue = useCallback((id: string, updated: Partial<Omit<RevenueEntry, 'id' | 'month' | 'year' | 'amount'>>) => {
-    setRevenues(prev => prev.map(r =>
-      r.id === id
-        ? {
-            ...r,
-            ...updated,
-            amount: updated.hourlyRate !== undefined && updated.hours !== undefined
-              ? updated.hourlyRate * updated.hours
-              : (updated.hourlyRate !== undefined ? updated.hourlyRate * r.hours : (updated.hours !== undefined ? r.hourlyRate * updated.hours : r.amount)),
-          }
-        : r
-    ));
+    editRevenueRecord(id, updated);
   }, []);
 
   const deleteRevenue = useCallback((id: string) => {
-    setRevenues(prev => prev.filter(r => r.id !== id));
+    deleteRevenueRecord(id);
   }, []);
 
   const addExpense = useCallback((entry: Omit<ExpenseEntry, 'id' | 'month' | 'year'>) => {
-    const d = new Date(entry.date);
-    const newEntry: ExpenseEntry = {
-      ...entry,
-      id: crypto.randomUUID(),
-      month: d.getMonth(),
-      year: d.getFullYear(),
-    };
-    setExpenses(prev => [newEntry, ...prev]);
+    addExpenseRecord(entry);
+  }, []);
+
+  const editExpense = useCallback((id: string, updated: Partial<Omit<ExpenseEntry, 'id' | 'month' | 'year'>>) => {
+    editExpenseRecord(id, updated);
   }, []);
 
   const deleteExpense = useCallback((id: string) => {
-    setExpenses(prev => prev.filter(e => e.id !== id));
+    deleteExpenseRecord(id);
   }, []);
 
-  // Apply recurring expenses for a given month/year if not already applied
   const applyRecurring = useCallback((month: number, year: number) => {
-    setExpenses(prev => {
-      const recurringTemplates = prev.filter(e => e.isRecurring);
-      const uniqueRecurring = new Map<string, ExpenseEntry>();
-      recurringTemplates.forEach(e => {
-        const key = `${e.category}-${e.description}-${e.amount}`;
-        if (!uniqueRecurring.has(key)) uniqueRecurring.set(key, e);
-      });
+    const currentExpenses = readFinanceExpenses();
+    const recurringTemplates = currentExpenses.filter((expense) => expense.isRecurring);
+    const uniqueRecurring = new Map<string, ExpenseEntry>();
 
-      const newEntries: ExpenseEntry[] = [];
-      uniqueRecurring.forEach(template => {
-        const exists = prev.some(
-          e => e.month === month && e.year === year && e.isRecurring &&
-            e.category === template.category && e.description === template.description && e.amount === template.amount
-        );
-        if (!exists) {
-          newEntries.push({
-            ...template,
-            id: crypto.randomUUID(),
-            date: `${year}-${String(month + 1).padStart(2, '0')}-01`,
-            month,
-            year,
-          });
-        }
-      });
-      return newEntries.length > 0 ? [...newEntries, ...prev] : prev;
+    recurringTemplates.forEach((expense) => {
+      const key = `${expense.category}-${expense.description}-${expense.amount}`;
+      if (!uniqueRecurring.has(key)) uniqueRecurring.set(key, expense);
     });
+
+    const nextEntries: ExpenseEntry[] = [];
+    uniqueRecurring.forEach((template) => {
+      const exists = currentExpenses.some((expense) => (
+        expense.month === month
+          && expense.year === year
+          && expense.isRecurring
+          && expense.category === template.category
+          && expense.description === template.description
+          && expense.amount === template.amount
+      ));
+
+      if (exists) return;
+
+      nextEntries.push({
+        ...template,
+        id: crypto.randomUUID(),
+        date: `${year}-${String(month + 1).padStart(2, '0')}-01`,
+        month,
+        year,
+        calendarMeta: {
+          ...(template.calendarMeta ?? {}),
+          date: `${year}-${String(month + 1).padStart(2, '0')}-01`,
+          syncTarget: 'finance-expense',
+        },
+      });
+    });
+
+    if (nextEntries.length === 0) return;
+    writeFinanceExpenses([...nextEntries, ...currentExpenses]);
   }, []);
 
-  const filteredRevenues = revenues.filter(r => r.month === selectedMonth && r.year === selectedYear);
-  const filteredExpenses = expenses.filter(e => e.month === selectedMonth && e.year === selectedYear);
+  const filteredRevenues = revenues.filter((revenue) => revenue.month === selectedMonth && revenue.year === selectedYear);
+  const filteredExpenses = expenses.filter((expense) => expense.month === selectedMonth && expense.year === selectedYear);
 
-  const totalRevenue = filteredRevenues.reduce((sum, r) => sum + r.amount, 0);
-  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalRevenue = filteredRevenues.reduce((sum, revenue) => sum + revenue.amount, 0);
+  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   const profit = totalRevenue - totalExpenses;
 
-  // Revenue by client for selected month
-  const revenueByClient = filteredRevenues.reduce((acc, r) => {
-    acc[r.client] = (acc[r.client] || 0) + r.amount;
-    return acc;
+  const revenueByClient = filteredRevenues.reduce((accumulator, revenue) => {
+    accumulator[revenue.client] = (accumulator[revenue.client] || 0) + revenue.amount;
+    return accumulator;
   }, {} as Record<string, number>);
 
-  // Expenses by category for selected month
-  const expensesByCategory = filteredExpenses.reduce((acc, e) => {
-    acc[e.category] = (acc[e.category] || 0) + e.amount;
-    return acc;
+  const expensesByCategory = filteredExpenses.reduce((accumulator, expense) => {
+    accumulator[expense.category] = (accumulator[expense.category] || 0) + expense.amount;
+    return accumulator;
   }, {} as Record<string, number>);
 
-  // Monthly summary for dashboard (all months of selected year)
-  const monthlySummary = Array.from({ length: 12 }, (_, i) => {
-    const monthRevenues = revenues.filter(r => r.month === i && r.year === selectedYear);
-    const monthExpenses = expenses.filter(e => e.month === i && e.year === selectedYear);
-    const rev = monthRevenues.reduce((s, r) => s + r.amount, 0);
-    const exp = monthExpenses.reduce((s, e) => s + e.amount, 0);
-    return { month: i, revenue: rev, expenses: exp, profit: rev - exp };
+  const monthlySummary = Array.from({ length: 12 }, (_, month) => {
+    const monthRevenues = revenues.filter((revenue) => revenue.month === month && revenue.year === selectedYear);
+    const monthExpenses = expenses.filter((expense) => expense.month === month && expense.year === selectedYear);
+    const revenue = monthRevenues.reduce((sum, entry) => sum + entry.amount, 0);
+    const expense = monthExpenses.reduce((sum, entry) => sum + entry.amount, 0);
+    return { month, revenue, expenses: expense, profit: revenue - expense };
   });
 
   return {
-    revenues, expenses,
-    filteredRevenues, filteredExpenses,
-    selectedMonth, selectedYear,
-    setSelectedMonth, setSelectedYear,
-    addRevenue, deleteRevenue, editRevenue,
-    addExpense, deleteExpense,
+    isLoaded,
+    loadError,
+    revenues,
+    expenses,
+    filteredRevenues,
+    filteredExpenses,
+    selectedMonth,
+    selectedYear,
+    setSelectedMonth,
+    setSelectedYear,
+    addRevenue,
+    deleteRevenue,
+    editRevenue,
+    addExpense,
+    deleteExpense,
+    editExpense,
     applyRecurring,
-    totalRevenue, totalExpenses, profit,
-    revenueByClient, expensesByCategory,
+    totalRevenue,
+    totalExpenses,
+    profit,
+    revenueByClient,
+    expensesByCategory,
     monthlySummary,
-    clients, addClient, removeClient,
+    clients,
+    addClient,
+    removeClient,
+    editClient,
   };
 }
 

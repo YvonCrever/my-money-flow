@@ -1,0 +1,35 @@
+# Dépendances
+node_modules/
+
+# Build & cache Vite
+dist/
+build/
+.vite/
+*.chunk.js
+*.chunk.ts
+
+# Locks & logs (jamais utiles pour le code)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+npm-debug.log*
+*.log
+
+# Git
+.git/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests (à exclure sauf quand tu travailles sur les tests)
+# coverage/
+# __snapshots__/
+
+# Tailwind / PostCSS (config rarement utile au contexte)
+tailwind.config.*
+postcss.config.*

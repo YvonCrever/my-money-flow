@@ -1,0 +1,33 @@
+# Architecture des features
+
+Ce dossier est la source de vérité pour toute nouvelle page métier.
+
+## Structure cible
+
+- `routes/`
+  - route d'entrée fine
+  - branche styles, providers et page orchestratrice
+- `page/`
+  - page orchestratrice
+  - aucune logique métier globale
+  - aucun gros rendu spécifique inline si on peut l'extraire
+- `components/`
+  - composants spécifiques à la feature
+- `styles/`
+  - styles spécifiques à la feature
+- `store/`
+  - hooks ou état local à la feature quand ils ne sont pas réellement transverses
+
+## Règles
+
+- Une nouvelle feature ne doit pas ajouter de styles métier dans `src/index.css`.
+- Une nouvelle feature ne doit pas ajouter de logique métier dans `AppLayout`.
+- Les routes restent fines et importent la page orchestratrice depuis `feature/page`.
+- Les composants spécifiques vivent avec leur feature.
+- `src/lib` reste réservé aux briques réellement transverses ou partagées entre plusieurs features.
+- Si une feature n'a pas encore besoin d'un dossier `components/`, `styles/` ou `store/`, il peut être absent temporairement.
+
+## Compatibilité
+
+- Certains fichiers dans `src/pages/app` restent comme réexports de transition pour éviter de casser les imports existants.
+- Toute nouvelle page doit partir de cette structure cible, pas de l'ancien pattern.

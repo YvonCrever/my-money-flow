@@ -4,6 +4,7 @@ import {
   APP_STORE_NAMES,
   clearStore,
   getBackupMetadata,
+  openAppStorageDb,
   requestToPromise,
   setBackupMetadata,
   waitForTransaction,
@@ -155,23 +156,14 @@ async function normalizeEntry(entry: LegacyEntryShape): Promise<JournalEntry> {
 }
 
 function openDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (typeof indexedDB === 'undefined') {
-      reject(wrapJournalStorageError(
-        new Error('IndexedDB unavailable'),
-        'unsupported',
-        'Ce navigateur ne peut pas enregistrer le Journal localement.',
-      ));
-      return;
-    }
-
-    const request = indexedDB.open('ycaro-db', 5);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(wrapJournalStorageError(
-      request.error ?? new Error('Failed to open IndexedDB'),
-      'unavailable',
-      "Impossible d'ouvrir la base locale du Journal.",
-    ));
+  return openAppStorageDb().catch((error) => {
+    throw wrapJournalStorageError(
+      error,
+      typeof indexedDB === 'undefined' ? 'unsupported' : 'unavailable',
+      typeof indexedDB === 'undefined'
+        ? 'Ce navigateur ne peut pas enregistrer le Journal localement.'
+        : "Impossible d'ouvrir la base locale du Journal.",
+    );
   });
 }
 

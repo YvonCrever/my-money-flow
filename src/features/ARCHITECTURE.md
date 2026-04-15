@@ -27,6 +27,33 @@ Ce dossier est la source de vérité pour toute nouvelle page métier.
 - `src/lib` reste réservé aux briques réellement transverses ou partagées entre plusieurs features.
 - Si une feature n'a pas encore besoin d'un dossier `components/`, `styles/` ou `store/`, il peut être absent temporairement.
 
+## Principes de disposition
+
+Lors de la création d'une nouvelle page, deux principes directeurs de disposition des blocs et des textes doivent s'appliquer par défaut.
+
+### 1. Minimalisation des informations inscrites
+
+Le rendu doit réduire au strict minimum les textes affichés.
+
+Cela implique :
+- ne garder que les titres absolument nécessaires des blocs et des sections
+- éviter les textes explicatifs affichés dans l'interface courante
+- privilégier les interfaces orientées action, lecture rapide et données utiles
+
+### 2. Économie de l'espace
+
+Les informations prioritaires doivent tenir autant que possible dans l'espace visible d'un écran standard, sans dépendre d'un scroll vertical pour comprendre l'état principal de la page.
+
+Cela implique :
+- compacter les blocs, tableaux et graphiques quand c'est possible
+- utiliser des textes courts
+- accepter une taille de police plus petite si nécessaire
+- conserver un peu de padding pour préserver un minimum de lisibilité
+
+Ordre de priorité visuelle :
+- d'abord la compacité
+- ensuite la lisibilité
+
 ## Compatibilité
 
 - Certains fichiers dans `src/pages/app` restent comme réexports de transition pour éviter de casser les imports existants.

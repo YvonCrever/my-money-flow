@@ -29,6 +29,49 @@ vi.mock('@/lib/appStorageDb', () => ({
     journalDbTestState.records.clear();
   }),
   getBackupMetadata: vi.fn(async (key: string) => journalDbTestState.backupMetadata.get(key) ?? null),
+  openAppStorageDb: vi.fn(async () => ({
+    close: vi.fn(),
+    transaction: vi.fn((storeName: string) => ({
+      error: null,
+      objectStore: vi.fn(() => ({
+        delete: vi.fn((key: string) => ({
+          __run: async () => {
+            journalDbTestState.records.delete(key);
+            return undefined;
+          },
+        })),
+        get: vi.fn((key: string) => ({
+          __run: async () => {
+            if (storeName === 'backup_metadata') {
+              return journalDbTestState.backupMetadata.has(key)
+                ? { key, value: journalDbTestState.backupMetadata.get(key) }
+                : undefined;
+            }
+
+            return undefined;
+          },
+        })),
+        getAll: vi.fn(() => ({
+          __run: async () => Array.from(journalDbTestState.records.values()),
+        })),
+        put: vi.fn((value: { date?: string; key?: string; value?: unknown }) => ({
+          __run: async () => {
+            if (storeName === 'backup_metadata' && value.key) {
+              journalDbTestState.backupMetadata.set(value.key, value.value);
+              return value.key;
+            }
+
+            if (value.date) {
+              journalDbTestState.records.set(value.date, value);
+              return value.date;
+            }
+
+            return undefined;
+          },
+        })),
+      })),
+    })),
+  })),
   requestToPromise: vi.fn(async (request: { __run: () => Promise<unknown> }) => request.__run()),
   setBackupMetadata: vi.fn(async (key: string, value: unknown) => {
     journalDbTestState.backupMetadata.set(key, value);

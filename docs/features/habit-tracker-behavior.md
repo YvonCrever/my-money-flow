@@ -103,12 +103,12 @@ Le pourcentage mensuel d'une habitude se calcule ainsi :
 
 - nombre de jours cochés pour cette habitude dans le mois en cours
 - divisé par
-- nombre de jours éligibles écoulés pour cette habitude dans le mois en cours
+- nombre de jours écoulés et renseignés pour cette habitude dans le mois en cours
 
 Le dénominateur :
 
-- ne compte jamais les jours avant la création
-- ne compte jamais les jours après l'archivage
+- ne compte jamais les cellules `empty`
+- compte les cellules `not-done`
 - ne compte jamais les jours futurs
 
 Ce calcul permet de mesurer la régularité réelle d'une habitude sur le mois en cours.
@@ -177,7 +177,8 @@ Les cas limites suivants font partie du comportement attendu du MVP.
 ### Habitude créée en milieu de mois
 
 Une habitude créée en cours de mois ne compte pas pour les jours précédents.
-Ses calculs commencent à sa date de création.
+Ses calculs de saisie commencent à sa date de création.
+Son `%T` reste une jauge du mois entier.
 
 ### Habitude archivée en cours de mois
 

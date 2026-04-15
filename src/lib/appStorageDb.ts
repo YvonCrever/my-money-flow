@@ -1,5 +1,5 @@
 const DB_NAME = 'ycaro-db';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 export const APP_STORE_NAMES = {
   journalEntries: 'today_everyday_entries',
@@ -8,6 +8,7 @@ export const APP_STORE_NAMES = {
   financeExpenses: 'finance_expenses',
   financeClients: 'finance_clients',
   readingBooks: 'reading_books',
+  habitTracker: 'habit_tracker',
   calendarState: 'calendar_state',
   personalData: 'personal_data',
   invoiceSettings: 'invoice_settings',
@@ -61,6 +62,7 @@ export function openAppStorageDb(): Promise<IDBDatabase> {
       ensureStore(database, APP_STORE_NAMES.financeExpenses, { keyPath: 'key' });
       ensureStore(database, APP_STORE_NAMES.financeClients, { keyPath: 'key' });
       ensureStore(database, APP_STORE_NAMES.readingBooks, { keyPath: 'key' });
+      ensureStore(database, APP_STORE_NAMES.habitTracker, { keyPath: 'key' });
       ensureStore(database, APP_STORE_NAMES.calendarState, { keyPath: 'key' });
       ensureStore(database, APP_STORE_NAMES.personalData, { keyPath: 'key' });
       ensureStore(database, APP_STORE_NAMES.invoiceSettings, { keyPath: 'key' });

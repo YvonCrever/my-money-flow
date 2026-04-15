@@ -5,7 +5,7 @@ import { getPageAnimationOwnerId, shouldAdvancePageAnimationToken } from '@/feat
 describe('app route animation ownership', () => {
   it.each([
     ['/', null],
-    ['/habits', null],
+    ['/habits', 'habits'],
     ['/finance/dashboard', 'finance'],
     ['/reading', 'lecture'],
     ['/journal', 'journal'],

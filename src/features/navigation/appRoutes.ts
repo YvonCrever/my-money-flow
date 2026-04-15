@@ -5,7 +5,7 @@ export interface AppNavItem {
   end?: boolean;
 }
 
-export type AppPageAnimationOwnerId = 'finance' | 'lecture' | 'journal';
+export type AppPageAnimationOwnerId = 'finance' | 'lecture' | 'journal' | 'habits';
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
   { id: 'home', label: 'Accueil', to: '/', end: true },
@@ -26,6 +26,7 @@ export function getPageAnimationOwnerId(pathname: string): AppPageAnimationOwner
   if (pathname.startsWith('/finance')) return 'finance';
   if (pathname.startsWith('/reading')) return 'lecture';
   if (pathname.startsWith('/journal')) return 'journal';
+  if (pathname.startsWith('/habits')) return 'habits';
   return null;
 }
 

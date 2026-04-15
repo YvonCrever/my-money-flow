@@ -146,6 +146,34 @@ Exemples :
 - une page peut être volontairement minimale si cela améliore sa stabilité et sa compréhension
 - un comportement homogène est préféré à une logique spécifique si cela réduit la charge mentale
 
+### 5.1. Principes directeurs de disposition des pages
+
+La conception visuelle des pages doit également suivre deux principes directeurs de disposition.
+
+#### 1. Minimalisation des informations inscrites
+
+Par défaut, l'interface doit afficher le moins de texte possible.
+
+Cela implique :
+- ne garder que les titres absolument nécessaires des blocs et des sections
+- éviter les textes explicatifs visibles dans le rendu courant
+- privilégier les interfaces de lecture immédiate, centrées sur les données et les actions
+
+#### 2. Économie de l'espace
+
+Les informations les plus importantes doivent tenir autant que possible dans l'espace visible d'un écran standard.
+
+Cela implique :
+- éviter qu'un utilisateur doive scroller pour comprendre l'état principal d'une page
+- compacter les tableaux, blocs et graphiques quand c'est possible
+- utiliser des textes courts
+- accepter une taille de police plus petite si nécessaire
+- conserver un peu de padding pour maintenir un niveau minimal de lisibilité
+
+Ordre de priorité visuelle :
+- d'abord la compacité
+- ensuite la lisibilité
+
 ---
 
 ## 6. Périmètre actuel et statut des modules

@@ -18,6 +18,7 @@ import {
   type StoredDataset,
 } from '@/types/storage';
 import { EXPENSE_CATEGORIES, REVENUE_UNITS, type ExpenseCategory, type RevenueUnit } from '@/types/finance';
+import { type HabitTrackerState } from '@/features/habits/types';
 
 const datasetSourceSchema = z.enum(['app', 'legacy-local-storage', 'backup-import']);
 const revenueUnits = REVENUE_UNITS.map((unit) => unit.value) as unknown as [RevenueUnit, ...RevenueUnit[]];
@@ -211,6 +212,37 @@ export const calendarStateSchema = z.object({
   lastUpdatedAt: z.string(),
 });
 
+export const habitTrackerStateSchema = z.object({
+  schemaVersion: z.literal(1),
+  habits: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    kind: z.enum(['daily', 'weekly']),
+    status: z.enum(['active', 'archived']),
+    createdAt: z.string(),
+    archivedAt: z.string().nullable(),
+    updatedAt: z.string(),
+  })),
+  dailyEntries: z.array(z.object({
+    id: z.string(),
+    habitId: z.string(),
+    dateKey: z.string(),
+    state: z.enum(['done', 'not-done']),
+    updatedAt: z.string(),
+  })),
+  moodEntries: z.array(z.object({
+    dateKey: z.string(),
+    value: z.number(),
+    updatedAt: z.string(),
+  })),
+  sleepEntries: z.array(z.object({
+    dateKey: z.string(),
+    value: z.number(),
+    updatedAt: z.string(),
+  })),
+  lastUpdatedAt: z.string(),
+}) as z.ZodType<HabitTrackerState>;
+
 export const journalBackupMediaItemSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -249,6 +281,7 @@ export const storedFinanceRevenuesSchema = createStoredDatasetSchema(z.array(rev
 export const storedFinanceExpensesSchema = createStoredDatasetSchema(z.array(expenseEntrySchema));
 export const storedFinanceClientsSchema = createStoredDatasetSchema(z.array(clientSchema));
 export const storedReadingBooksSchema = createStoredDatasetSchema(z.array(readingEntrySchema));
+export const storedHabitTrackerStateSchema = createStoredDatasetSchema(habitTrackerStateSchema);
 export const storedCalendarStateSchema = createStoredDatasetSchema(calendarStateSchema);
 export const storedJournalBackupSchema = createStoredDatasetSchema(z.array(journalBackupEntrySchema));
 export const storedFinanceBackupSchema = createStoredDatasetSchema(financeBackupValueSchema);

@@ -101,7 +101,8 @@ La feature doit couvrir un ensemble limité d'opérations.
 - renommer une habitude si cette action est gardée dans le MVP technique
 - archiver une habitude
 - créer ou mettre à jour une validation journalière
-- décocher une validation existante
+- faire alterner une validation existante entre `done` et `not-done`
+- écrire les valeurs Mood / Sleep du jour
 
 ### Calculs métier
 
@@ -110,6 +111,7 @@ La feature doit couvrir un ensemble limité d'opérations.
 - calculer le pourcentage de réussite du jour
 - calculer le pourcentage mensuel d'une habitude
 - déterminer les états vides et les états neutres
+- centraliser la date de référence du tracker
 
 ## 6. Répartition des responsabilités
 
@@ -190,6 +192,8 @@ Figer les noms de champs et les types utiles au MVP.
 
 Créer le conteneur de données de la feature.
 Prévoir la lecture, l'écriture et la mise à jour des habitudes et des validations.
+Dans ce premier cycle, la persistance réelle couvre Daily Habits et Mood / Sleep.
+Weekly Habits reste en état local temporaire.
 
 ### 3. Écrire la logique métier
 
@@ -245,11 +249,13 @@ Plusieurs points demandent de la discipline dès le début.
 - ne pas autoriser les jours futurs
 - ne pas créer plusieurs validations pour la même habitude et le même jour
 - ne pas traiter une journée sans habitude éligible comme un échec
+- ne jamais disperser les règles temporelles entre composants UI et calculs
 - ne pas surdécouper la feature pour un MVP
 - ne pas introduire de logique avancée non demandée
 
 La gestion des dates est un point sensible.
 Le tracker doit utiliser une représentation de jour simple et stable pour éviter les incohérences dans la grille et les calculs.
+Toutes les fonctions métier liées au temps et aux statistiques doivent recevoir une date de référence explicite.
 
 ## 10. Éléments volontairement laissés hors MVP
 
